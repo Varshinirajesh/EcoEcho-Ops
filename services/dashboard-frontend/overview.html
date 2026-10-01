@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoEcho-Ops — Overview</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar" id="sidebar"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>System Overview</h1>
+      <p>Real-time operations view for the self-healing acoustic monitoring pipeline. Pick a topic below for detail.</p>
+    </div>
+    <div>
+      <span id="health-badge" class="health-badge"><span class="dot"></span> <span id="health-text">Checking…</span></span>
+      <div class="updated" id="updated">—</div>
+    </div>
+  </div>
+
+  <div class="grid grid-6">
+    <div class="card">
+      <div class="stat-label">Prediction Accuracy</div>
+      <div class="stat-value" id="stat-accuracy">—</div>
+      <div class="stat-delta">last 5 min, real matches</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Drift Status</div>
+      <div class="stat-value small" id="stat-drift">—</div>
+      <div class="stat-delta" id="stat-drift-sub">—</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Model Version</div>
+      <div class="stat-value small" id="stat-version">—</div>
+      <div class="stat-delta" id="stat-version-sub">—</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">System Health</div>
+      <div class="stat-value small" id="stat-health">—</div>
+      <div class="stat-delta">buoy + inference reachable</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Low-Confidence Clips</div>
+      <div class="stat-value" id="stat-lowconf">—</div>
+      <div class="stat-delta">last 15 min</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Retraining Status</div>
+      <div class="stat-value small" id="stat-retrain">—</div>
+      <div class="stat-delta" id="stat-retrain-sub">—</div>
+    </div>
+  </div>
+
+  <div class="topic-links">
+    <a class="topic-card" href="live.html" style="--accent: var(--blue)">
+      <div class="topic-card-head">
+        <div class="icon">🎙️</div>
+        <div>
+          <h3>Live Monitoring</h3>
+          <p>What the buoy is hearing right now</p>
+        </div>
+      </div>
+      <div class="topic-preview">
+        <img class="topic-thumb" id="tc-spectrogram" alt="live spectrogram preview">
+        <div class="topic-mini-row"><span>Detection</span><span id="tc-species">—</span></div>
+        <div class="topic-mini-row"><span>Confidence</span><span id="tc-confidence">—</span></div>
+      </div>
+      <div class="topic-cta">Open live stream →</div>
+    </a>
+
+    <a class="topic-card" href="drift.html" style="--accent: var(--orange)">
+      <div class="topic-card-head">
+        <div class="icon">🌊</div>
+        <div>
+          <h3>Drift Detection</h3>
+          <p>Feature drift vs. the training distribution</p>
+        </div>
+      </div>
+      <div class="topic-preview">
+        <div id="tc-drift-chart"></div>
+        <div class="topic-mini-row"><span>Current score</span><span id="tc-drift-score">—</span></div>
+        <div class="topic-mini-row"><span>Status</span><span id="tc-drift-status">—</span></div>
+      </div>
+      <div class="topic-cta">Open drift detail →</div>
+    </a>
+
+    <a class="topic-card" href="registry.html" style="--accent: var(--aqua)">
+      <div class="topic-card-head">
+        <div class="icon">🧬</div>
+        <div>
+          <h3>Model Registry</h3>
+          <p>Champion model &amp; retraining outcomes</p>
+        </div>
+      </div>
+      <div class="topic-preview">
+        <div class="topic-mini-stat"><span class="big" id="tc-champion-v">—</span><span>current champion</span></div>
+        <div class="topic-mini-row"><span>Last retrain</span><span id="tc-retrain-time">—</span></div>
+        <div class="topic-mini-row"><span>Outcome</span><span id="tc-retrain-outcome">—</span></div>
+      </div>
+      <div class="topic-cta">Open model registry →</div>
+    </a>
+
+    <a class="topic-card" href="health.html" style="--accent: var(--violet)">
+      <div class="topic-card-head">
+        <div class="icon">🩺</div>
+        <div>
+          <h3>System Health</h3>
+          <p>Live event log, alerts, buoy status</p>
+        </div>
+      </div>
+      <div class="topic-preview">
+        <div class="topic-mini-log" id="tc-log-preview">—</div>
+      </div>
+      <div class="topic-cta">Open system health →</div>
+    </a>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+renderSidebar("overview.html");
+
+async function refresh() {
+  try {
+    const d = await fetchOverview();
+    setHealthBadge(d);
+
+    document.getElementById("stat-accuracy").textContent = fmtPct(d.accuracy);
+    document.getElementById("stat-drift").innerHTML = d.drift_detected
+      ? '<span class="pill crit">Detected</span>' : '<span class="pill good">Normal</span>';
+    document.getElementById("stat-drift-sub").textContent = "score " + (d.drift_score ?? 0).toFixed(2);
+    document.getElementById("stat-version").textContent = d.is_registry ? "v" + d.active_version : "local";
+    document.getElementById("stat-version-sub").textContent = d.is_registry ? "from MLflow registry" : "fallback model";
+    document.getElementById("stat-health").innerHTML = d.system_healthy
+      ? '<span class="pill good">Online</span>' : '<span class="pill crit">Offline</span>';
+    document.getElementById("stat-lowconf").textContent = Math.round(d.low_confidence_recent ?? 0);
+    document.getElementById("stat-retrain").innerHTML = d.last_retrain
+      ? (d.last_retrain.promoted === "true" ? '<span class="pill good">Promoted</span>' : '<span class="pill muted">Rejected</span>')
+      : '<span class="pill muted">Idle</span>';
+    document.getElementById("stat-retrain-sub").textContent = d.last_retrain ? fmtAgo(d.last_retrain.start_time) : "no runs yet";
+
+    // Live Monitoring card
+    document.getElementById("tc-spectrogram").src = `${API}/api/spectrogram.png?t=${Date.now()}`;
+    document.getElementById("tc-species").textContent = d.latest_prediction?.prediction ?? "—";
+    document.getElementById("tc-confidence").textContent = d.latest_prediction?.confidence != null
+      ? (d.latest_prediction.confidence * 100).toFixed(1) + "%" : "—";
+
+    // Drift Detection card
+    drawMiniChart("tc-drift-chart", d.drift_history, 0.5);
+    document.getElementById("tc-drift-score").textContent = (d.drift_score ?? 0).toFixed(3);
+    document.getElementById("tc-drift-status").innerHTML = d.drift_detected
+      ? '<span class="pill crit">Detected</span>' : '<span class="pill good">Normal</span>';
+
+    // Model Registry card
+    document.getElementById("tc-champion-v").textContent = d.champion ? "v" + d.champion.version : "—";
+    document.getElementById("tc-retrain-time").textContent = d.last_retrain ? fmtAgo(d.last_retrain.start_time) : "never";
+    document.getElementById("tc-retrain-outcome").innerHTML = d.last_retrain
+      ? (d.last_retrain.promoted === "true" ? '<span class="pill good">Promoted</span>' : '<span class="pill muted">Rejected</span>')
+      : '<span class="pill muted">—</span>';
+
+    // System Health card
+    const logPreview = document.getElementById("tc-log-preview");
+    const recentEvents = (d.events || []).slice(0, 3);
+    logPreview.innerHTML = recentEvents.length
+      ? recentEvents.map(e => `<div><span class="t">${new Date(e.time).toLocaleTimeString()}</span>${e.message}</div>`).join("")
+      : "No events yet.";
+  } catch (e) {
+    setHealthUnreachable();
+    console.error(e);
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+requests==2.32.3
+mlflow-skinny==3.14.0
+minio==7.2.20

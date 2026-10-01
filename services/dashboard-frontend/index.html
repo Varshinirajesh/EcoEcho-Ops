@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EcoEcho-Ops — Sign In</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0E7C7B; --aqua:#4FC3BE; --ink:#E7F2F1; --ink-muted:#8FA8A7;
+    --font-display:'Fraunces', serif; --font-body:'Inter', sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    font-family: var(--font-body);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; overflow:hidden; position:relative;
+    background: linear-gradient(160deg,#020508,#041016 35%,#06181E 65%,#03252A);
+    background-size: 300% 300%;
+    animation: waterShift 22s ease-in-out infinite;
+  }
+  @keyframes waterShift{
+    0%{ background-position:0% 30%; } 50%{ background-position:100% 70%; } 100%{ background-position:0% 30%; }
+  }
+
+  .caustics{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(79,195,190,0.06), transparent 35%),
+      radial-gradient(circle at 75% 60%, rgba(79,195,190,0.05), transparent 40%),
+      radial-gradient(circle at 50% 85%, rgba(79,195,190,0.04), transparent 45%);
+    animation: causticsMove 14s ease-in-out infinite alternate;
+    pointer-events:none;
+  }
+  @keyframes causticsMove{
+    0%{ transform: translate(0,0) scale(1); } 100%{ transform: translate(-3%, 2%) scale(1.08); }
+  }
+
+  .particle{
+    position:absolute; bottom:-20px; border-radius:50%;
+    background: rgba(79,195,190,0.4);
+    animation: rise linear infinite;
+    pointer-events:none;
+  }
+  @keyframes rise{
+    0%{ transform: translateY(0) translateX(0); opacity:0; }
+    10%{ opacity:0.5; }
+    90%{ opacity:0.25; }
+    100%{ transform: translateY(-110vh) translateX(20px); opacity:0; }
+  }
+
+  .whale-wrap{
+    position:absolute; top:60%; left:-320px; z-index:1;
+    animation: swim 20s ease-in-out infinite;
+  }
+  @keyframes swim{
+    0%{ left:-320px; transform: translateY(0) rotate(0deg); }
+    25%{ transform: translateY(-22px) rotate(-2.5deg); }
+    50%{ left:55%; transform: translateY(8px) rotate(1.5deg); }
+    75%{ transform: translateY(-14px) rotate(-1.5deg); }
+    100%{ left:120%; transform: translateY(0) rotate(0deg); }
+  }
+  .whale{
+    width:280px; height:auto; opacity:0.4;
+    animation: whaleBob 3.6s ease-in-out infinite;
+  }
+  @keyframes whaleBob{
+    0%,100%{ transform: translateY(0) rotate(0deg); }
+    50%{ transform: translateY(-8px) rotate(1deg); }
+  }
+  .whale-tail{
+    transform-origin: 248px 92px;
+    animation: whaleTail 2.6s ease-in-out infinite;
+  }
+  @keyframes whaleTail{
+    0%,100%{ transform: rotate(0deg); }
+    50%{ transform: rotate(8deg); }
+  }
+
+  .card{
+    position:relative; z-index:2;
+    width:380px; padding:40px 36px 32px;
+    background: rgba(10,25,30,0.55);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid rgba(79,195,190,0.22);
+    border-radius: 20px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+    opacity:0; transform: translateY(18px);
+    animation: enter 0.9s ease forwards 0.2s;
+  }
+  @keyframes enter{ to{ opacity:1; transform:translateY(0); } }
+
+  .brand{ text-align:center; margin-bottom:26px; }
+  .wave-icon{ width:38px; margin:0 auto 10px; display:block; }
+  .brand h1{ font-family:var(--font-display); font-weight:600; font-size:23px; color:var(--ink); letter-spacing:0.3px; }
+  .brand p{ font-size:11.5px; color:var(--ink-muted); margin-top:4px; letter-spacing:0.4px; }
+
+  .field{ margin-bottom:16px; }
+  .field label{ font-size:11.5px; color:var(--ink-muted); display:block; margin-bottom:6px; letter-spacing:0.3px; }
+  .field input{
+    width:100%; padding:11px 14px; border-radius:10px;
+    border:1px solid rgba(79,195,190,0.25);
+    background: rgba(255,255,255,0.04);
+    color:var(--ink); font-size:13.5px; font-family:var(--font-body);
+    outline:none; transition: all 0.3s ease;
+  }
+  .field input::placeholder{ color:rgba(143,168,167,0.5); }
+  .field input:focus{
+    border-color: var(--aqua);
+    box-shadow: 0 0 0 3px rgba(79,195,190,0.18);
+    background: rgba(255,255,255,0.06);
+  }
+
+  .row-between{ display:flex; justify-content:space-between; align-items:center; margin:14px 0 22px; font-size:12px; color:var(--ink-muted); }
+  .remember{ display:flex; align-items:center; gap:6px; }
+  .row-between a{ color:var(--aqua); text-decoration:underline; opacity:0.9; }
+
+  .btn{
+    width:100%; padding:13px; border:none; border-radius:12px; cursor:pointer;
+    background: linear-gradient(120deg, var(--teal), var(--aqua));
+    color:#01100F; font-weight:600; font-size:14px; letter-spacing:0.3px;
+    position:relative; overflow:hidden;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+  .btn:hover{ box-shadow: 0 6px 22px rgba(79,195,190,0.35); transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0); }
+  .btn .ripple{
+    position:absolute; border-radius:50%; background:rgba(255,255,255,0.4);
+    transform:scale(0); animation: rippleAnim 0.6s ease-out;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{ to{ transform:scale(4); opacity:0; } }
+
+  .btn.loading{ pointer-events:none; }
+  .spinner{
+    width:16px; height:16px; border:2px solid rgba(1,16,15,0.3); border-top-color:#01100F;
+    border-radius:50%; display:none; animation: spin 0.7s linear infinite;
+    margin:0 auto;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .btn.loading .btn-text{ display:none; }
+  .btn.loading .spinner{ display:block; }
+
+  .demo-note{
+    text-align:center; margin-top:18px; font-size:11px;
+    color: var(--ink-muted); font-family:'IBM Plex Mono', monospace, var(--font-body);
+    background: rgba(255,255,255,0.03); border-radius:8px; padding:8px 10px;
+    border: 1px solid rgba(79,195,190,0.1);
+  }
+  .status-line{
+    text-align:center; margin-top:16px; font-size:11.5px; color: var(--aqua); font-weight:500;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .status-line .d{ width:6px; height:6px; border-radius:50%; background:var(--aqua); box-shadow:0 0 6px var(--aqua); animation: blip 2s infinite; }
+  @keyframes blip{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .error{
+    color:#FFB4B4; background:rgba(255,90,90,0.1); border:1px solid rgba(255,120,120,0.25);
+    font-size:12px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:none;
+  }
+</style>
+</head>
+<body>
+<div class="caustics"></div>
+<div id="particles"></div>
+
+<div class="whale-wrap">
+  <svg class="whale" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 78
+             C 10 48, 35 22, 78 14
+             C 110 8, 145 10, 172 20
+             C 200 30, 222 46, 238 62
+             C 246 70, 250 76, 248 80
+             C 236 74, 222 78, 214 86
+             C 198 76, 165 68, 130 68
+             C 95 68, 60 72, 30 82
+             C 20 85, 12 84, 8 78 Z"
+          fill="#0A2A2E"/>
+    <path d="M45 74 C 70 84, 100 86, 128 82" stroke="#03181B" stroke-width="2" fill="none" opacity="0.6"/>
+    <path d="M50 68 C 75 78, 105 80, 132 76" stroke="#03181B" stroke-width="2" fill="none" opacity="0.6"/>
+    <path d="M55 62 C 80 71, 108 73, 134 70" stroke="#03181B" stroke-width="2" fill="none" opacity="0.6"/>
+    <path d="M100 62 C 80 92, 55 108, 30 104 C 48 88, 65 72, 100 62 Z" fill="#03181B"/>
+    <path d="M150 20 C 153 10, 163 8, 168 15 C 161 19, 155 20, 150 20 Z" fill="#03181B"/>
+    <g class="whale-tail">
+      <path d="M214 84 C 236 74, 262 62, 282 42
+               C 274 60, 268 68, 270 78
+               C 268 88, 274 96, 282 114
+               C 262 96, 236 88, 214 90 Z" fill="#03181B"/>
+    </g>
+    <circle cx="182" cy="38" r="2.4" fill="#0F3A3E"/>
+    <path d="M225 58 C 235 60, 244 62, 249 66" stroke="#03181B" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<div class="card">
+  <div class="brand">
+    <svg class="wave-icon" viewBox="0 0 48 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 12c4-6 8-6 12 0s8 6 12 0 8-6 12 0 8 6 10 0" stroke="#4FC3BE" stroke-width="2.4" stroke-linecap="round"/>
+    </svg>
+    <h1>EcoEcho-Ops</h1>
+    <p>Autonomous Acoustic Marine Telemetry</p>
+  </div>
+
+  <div class="error" id="errorBox">Invalid email or password. Please try again.</div>
+
+  <form id="loginForm">
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@example.com" required>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" required>
+    </div>
+    <div class="row-between">
+      <label class="remember"><input type="checkbox" style="accent-color:#4FC3BE;"> Remember me</label>
+      <a href="#">Forgot password?</a>
+    </div>
+    <button type="submit" class="btn" id="loginBtn">
+      <span class="btn-text">Sign In</span>
+      <div class="spinner"></div>
+    </button>
+  </form>
+
+  <div class="demo-note">Demo access — demo@ecoecho-ops.com / demo1234</div>
+  <div class="status-line"><span class="d"></span>Live · dashboard-api reachable</div>
+</div>
+
+<script>
+const container = document.getElementById('particles');
+for(let i=0;i<26;i++){
+  const p = document.createElement('div');
+  p.className='particle';
+  const size = 2 + Math.random()*4;
+  p.style.width = size+'px'; p.style.height=size+'px';
+  p.style.left = Math.random()*100+'vw';
+  p.style.animationDuration = (10+Math.random()*14)+'s';
+  p.style.animationDelay = (Math.random()*10)+'s';
+  container.appendChild(p);
+}
+
+const form = document.getElementById('loginForm');
+const btn = document.getElementById('loginBtn');
+const errorBox = document.getElementById('errorBox');
+
+// Demo-only gate: this is a local single-machine project with no user
+// accounts or backend auth, so this checks a hardcoded demo credential
+// (the same one shown on the card) and sets a session flag that
+// overview.html checks for. Not real security — appropriate only
+// because there's nothing sensitive behind it and no multi-user need.
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  errorBox.style.display='none';
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('password').value;
+
+  btn.classList.add('loading');
+
+  setTimeout(()=>{
+    btn.classList.remove('loading');
+    const validDemo = (email==='demo@ecoecho-ops.com' && pass==='demo1234');
+    if(validDemo){
+      sessionStorage.setItem('ecoecho_auth', '1');
+      document.querySelector('.card').style.transition='opacity 0.4s ease, transform 0.4s ease';
+      document.querySelector('.card').style.opacity='0';
+      document.querySelector('.card').style.transform='translateY(-14px)';
+      setTimeout(()=> window.location.href = 'overview.html', 400);
+    } else {
+      errorBox.style.display='block';
+    }
+  }, 900);
+});
+
+btn.addEventListener('click', function(e){
+  const rect = this.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className='ripple';
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size+'px';
+  ripple.style.left = (e.clientX-rect.left-size/2)+'px';
+  ripple.style.top = (e.clientY-rect.top-size/2)+'px';
+  this.appendChild(ripple);
+  setTimeout(()=>ripple.remove(), 650);
+});
+</script>
+</body>
+</html>

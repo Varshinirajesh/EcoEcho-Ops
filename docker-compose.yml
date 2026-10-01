@@ -1,0 +1,117 @@
+networks:
+  ecoecho-net:
+    driver: bridge
+    name: ecoecho-net
+
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: services/mlflow/Dockerfile
+    volumes:
+      - ./storage/mlflow:/mlflow
+    ports:
+      - "5000:5000"
+    networks: [ecoecho-net]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 15s
+      retries: 5
+
+  minio:
+    image: livekit/minio:latest
+    command: server /data --console-address ":9001"
+    env_file: .env
+    volumes:
+      - ./storage/minio:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks: [ecoecho-net]
+
+  inference-api:
+    build:
+      context: .
+      dockerfile: services/inference-api/Dockerfile
+    env_file: .env
+    volumes:
+      - ./models:/app/models:ro
+    ports:
+      - "8000:8000"
+    networks: [ecoecho-net]
+    depends_on:
+      - mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  buoy-simulator:
+    build:
+      context: .
+      dockerfile: services/buoy-simulator/Dockerfile
+    env_file: .env
+    environment:
+      INFERENCE_API_URL: http://inference-api:8000/predict
+    volumes:
+      - ./data/audio_stream:/app/data/audio_stream:ro
+      - ./cache/uplink:/app/cache/uplink
+    ports:
+      - "8001:8001"
+      - "8002:8002"
+    depends_on:
+      inference-api:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks: [ecoecho-net]
+
+  prometheus:
+    image: prom/prometheus:v2.53.5
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - inference-api
+      - buoy-simulator
+    networks: [ecoecho-net]
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./storage/grafana:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks: [ecoecho-net]
+
+  dashboard-api:
+    build:
+      context: .
+      dockerfile: services/dashboard-api/Dockerfile
+    env_file: .env
+    ports:
+      - "8003:8003"
+    depends_on:
+      - prometheus
+      - mlflow
+      - buoy-simulator
+    networks: [ecoecho-net]
+
+  dashboard-frontend:
+    build:
+      context: .
+      dockerfile: services/dashboard-frontend/Dockerfile
+    ports:
+      - "3001:80"
+    depends_on:
+      - dashboard-api
+    networks: [ecoecho-net]

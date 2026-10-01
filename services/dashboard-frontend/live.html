@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoEcho-Ops — Live Monitoring</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar" id="sidebar"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>Live Monitoring</h1>
+      <p>What the buoy is hearing right now, and what the model just decided.</p>
+    </div>
+    <div>
+      <span id="health-badge" class="health-badge"><span class="dot"></span> <span id="health-text">Checking…</span></span>
+      <div class="updated" id="updated">—</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card big">
+      <div class="card-head"><h2 class="lg">Live Prediction Stream</h2><span class="live-tag">LIVE</span></div>
+      <div class="spectrogram-wrap big"><img id="spectrogram" alt="live spectrogram"></div>
+      <div class="kv lg"><span>Detection</span><span id="p-species">—</span></div>
+      <div class="kv lg"><span>Confidence</span><span id="p-confidence">—</span></div>
+      <div class="kv lg"><span>Clip</span><span id="p-clip">—</span></div>
+      <div class="kv lg"><span>True species (ground truth)</span><span id="p-true">—</span></div>
+      <div class="kv lg"><span>Match</span><span id="p-match">—</span></div>
+      <div class="kv lg"><span>Storm mode</span><span id="p-storm">—</span></div>
+    </div>
+
+    <div class="card big">
+      <h2 class="lg">Recent Predictions</h2>
+      <div class="sub">Live feed, most recent first — derived from the same events System Health shows.</div>
+      <div id="pred-log"></div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+renderSidebar("live.html");
+
+async function refresh() {
+  try {
+    const d = await fetchOverview();
+    setHealthBadge(d);
+
+    document.getElementById("spectrogram").src = `${API}/api/spectrogram.png?t=${Date.now()}`;
+
+    const p = d.latest_prediction || {};
+    document.getElementById("p-species").textContent = p.prediction ?? "—";
+    document.getElementById("p-confidence").textContent = p.confidence != null ? (p.confidence * 100).toFixed(1) + "%" : "—";
+    document.getElementById("p-clip").textContent = p.clip ?? "—";
+    document.getElementById("p-true").textContent = p.true_species ?? "—";
+    document.getElementById("p-match").innerHTML = p.match
+      ? (p.match === "correct" ? '<span class="pill good">Correct</span>' : '<span class="pill crit">Incorrect</span>')
+      : "—";
+    document.getElementById("p-storm").innerHTML = p.storm_mode ? '<span class="pill warn">ON</span>' : '<span class="pill muted">off</span>';
+
+    renderLogRows("pred-log", d.events, (e) => e.message.startsWith("Prediction:"));
+  } catch (e) {
+    setHealthUnreachable();
+    console.error(e);
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

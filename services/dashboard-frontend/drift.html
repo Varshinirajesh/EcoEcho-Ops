@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoEcho-Ops — Drift Detection</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar" id="sidebar"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>Drift Detection</h1>
+      <p>Evidently compares the last 30 predictions' features against the training distribution. Storm noise is the usual cause of drift here.</p>
+    </div>
+    <div>
+      <span id="health-badge" class="health-badge"><span class="dot"></span> <span id="health-text">Checking…</span></span>
+      <div class="updated" id="updated">—</div>
+    </div>
+  </div>
+
+  <div class="grid grid-6" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="card">
+      <div class="stat-label">Current Drift Score</div>
+      <div class="stat-value xl" id="d-score">—</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Alert Threshold</div>
+      <div class="stat-value xl" id="d-threshold">0.5</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Status</div>
+      <div class="stat-value small" id="d-status" style="margin-top:8px;">—</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Storm Mode</div>
+      <div class="stat-value small" id="d-storm" style="margin-top:8px;">—</div>
+    </div>
+  </div>
+
+  <div class="grid grid-1">
+    <div class="card big">
+      <h2 class="lg">Drift Score — Last Hour</h2>
+      <div id="drift-chart"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-1">
+    <div class="card">
+      <h2>Drift Events</h2>
+      <div id="drift-log"></div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+renderSidebar("drift.html");
+
+async function refresh() {
+  try {
+    const d = await fetchOverview();
+    setHealthBadge(d);
+
+    document.getElementById("d-score").textContent = (d.drift_score ?? 0).toFixed(3);
+    document.getElementById("d-status").innerHTML = d.drift_detected
+      ? '<span class="pill crit">Detected</span>' : '<span class="pill good">Normal</span>';
+    document.getElementById("d-storm").innerHTML = d.storm_mode
+      ? '<span class="pill warn">ON</span>' : '<span class="pill muted">off</span>';
+
+    drawDriftChart("drift-chart", d.drift_history, 0.5);
+    renderLogRows("drift-log", d.events, (e) => e.message.toLowerCase().includes("drift") || e.message.toLowerCase().includes("storm"));
+  } catch (e) {
+    setHealthUnreachable();
+    console.error(e);
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

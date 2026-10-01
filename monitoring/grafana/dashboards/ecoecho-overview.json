@@ -1,0 +1,247 @@
+{
+  "title": "EcoEcho-Ops Overview",
+  "uid": "ecoecho-overview",
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 100,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "**EcoEcho-Ops** — hydrophone buoys classify whale sounds at the edge; storms inject noise that degrades predictions; the system detects the drift, uploads flagged clips, retrains itself, and only promotes a new model if it's actually better. This dashboard is that whole loop, live."
+      }
+    },
+    {
+      "id": 101,
+      "type": "row",
+      "title": "Edge inference",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 3 }
+    },
+    {
+      "id": 1,
+      "title": "Prediction confidence",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": null,
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "rate(inference_confidence_score_sum[1m]) / rate(inference_confidence_score_count[1m])",
+          "legendFormat": "avg confidence",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Predictions by species (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "sum by (species) (rate(inference_predictions_total[1m]))",
+          "legendFormat": "{{species}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Buoy prediction match (sanity check)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "sum by (result) (rate(buoy_prediction_match_total[1m]))",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Low-confidence rate",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 12 },
+      "datasource": null,
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.3 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(inference_low_confidence_total[5m])",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Active model version",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 12 },
+      "datasource": null,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "local fallback" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "inference_active_model_version",
+          "legendFormat": "registry version (0 = local fallback)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "Drift & storm detection",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 }
+    },
+    {
+      "id": 6,
+      "title": "Drift score vs. alert threshold",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": null,
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "inference_drift_score",
+          "legendFormat": "drift score",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Storm mode",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 21 },
+      "datasource": null,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "calm" }, "1": { "text": "storm" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "buoy_storm_mode_enabled",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Drift detected",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 21 },
+      "datasource": null,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "no" }, "1": { "text": "yes" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "inference_drift_detected",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "type": "row",
+      "title": "Cloud retraining pipeline",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 }
+    },
+    {
+      "id": 9,
+      "title": "Clips pending uplink",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "buoy_cache_pending_clips",
+          "legendFormat": "pending",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Uplink batches shipped to MinIO",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "datasource": null,
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value_and_name" },
+      "targets": [
+        {
+          "expr": "buoy_uplink_batches_total",
+          "legendFormat": "batches",
+          "refId": "A"
+        },
+        {
+          "expr": "buoy_uplink_clips_uploaded_total",
+          "legendFormat": "clips",
+          "refId": "B"
+        }
+      ]
+    }
+  ]
+}

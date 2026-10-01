@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoEcho-Ops — System Health</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar" id="sidebar"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>System Health</h1>
+      <p>Full event log, alerts, and buoy deployment status.</p>
+    </div>
+    <div>
+      <span id="health-badge" class="health-badge"><span class="dot"></span> <span id="health-text">Checking…</span></span>
+      <div class="updated" id="updated">—</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Buoy Deployment</h2>
+      <div class="buoy-block">
+        <div class="buoy-icon">🛟</div>
+        <div style="flex:1">
+          <div class="kv"><span>ID</span><span id="b-id">—</span></div>
+          <div class="kv"><span>Position</span><span id="b-pos">—</span></div>
+          <div class="kv"><span>Depth</span><span id="b-depth">—</span></div>
+          <div class="kv"><span>Status</span><span id="b-status">—</span></div>
+        </div>
+      </div>
+      <div class="muted-note">Fixed simulated deployment position (Stellwagen Bank, Gulf of Maine) — this project has no real hardware or GPS, so this is a constant, not live tracking.</div>
+    </div>
+
+    <div class="card">
+      <h2>Uplink to Cloud Storage</h2>
+      <div class="kv"><span>Clips pending upload</span><span id="u-pending">—</span></div>
+      <div class="kv"><span>Batches shipped total</span><span id="u-batches">—</span></div>
+      <div class="kv"><span>Clips shipped total</span><span id="u-clips">—</span></div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>System Logs</h2>
+      <div id="logs-body"></div>
+    </div>
+    <div class="card">
+      <h2>Alerts</h2>
+      <div id="alerts-body"></div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+renderSidebar("health.html");
+
+async function refresh() {
+  try {
+    const d = await fetchOverview();
+    setHealthBadge(d);
+
+    document.getElementById("b-id").textContent = d.buoy_info?.id ?? "—";
+    document.getElementById("b-pos").textContent = d.buoy_info ? `${d.buoy_info.lat}°N, ${d.buoy_info.lon}°W` : "—";
+    document.getElementById("b-depth").textContent = d.buoy_info ? d.buoy_info.depth_m + " m" : "—";
+    document.getElementById("b-status").innerHTML = d.buoy_info?.status === "online" ? '<span class="pill good">Online</span>' : '<span class="pill crit">Offline</span>';
+
+    document.getElementById("u-pending").textContent = Math.round(d.pending_clips ?? 0);
+    document.getElementById("u-batches").textContent = Math.round(d.uplink_batches ?? 0);
+    document.getElementById("u-clips").textContent = Math.round(d.uplink_clips ?? 0);
+
+    renderLogRows("logs-body", d.events);
+    renderLogRows("alerts-body", d.events, (e) => e.level !== "info");
+  } catch (e) {
+    setHealthUnreachable();
+    console.error(e);
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

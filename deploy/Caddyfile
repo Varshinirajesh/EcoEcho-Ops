@@ -1,0 +1,7 @@
+:80 {
+	reverse_proxy dashboard-frontend:80
+}
+
+# Once you own a domain and point its DNS A record at this VM's public IP,
+# replace the line above with your domain (e.g. "ecoecho.example.com {")
+# and remove the "http://" scheme — Caddy will provision HTTPS automatically.

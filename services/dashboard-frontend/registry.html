@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoEcho-Ops — Model Registry</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar" id="sidebar"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>Model Registry &amp; Retraining</h1>
+      <p>Every retrain evaluates a challenger against the current champion on a fixed validation set — it's only promoted if it actually wins.</p>
+    </div>
+    <div>
+      <span id="health-badge" class="health-badge"><span class="dot"></span> <span id="health-text">Checking…</span></span>
+      <div class="updated" id="updated">—</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card big">
+      <h2 class="lg">Retraining Pipeline</h2>
+      <div class="pipeline">
+        <div class="pipe-step"><div class="pipe-dot">✓</div>Data<br>Ingestion</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-dot">✓</div>Data<br>Validation</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-dot">✓</div>Model<br>Training</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-dot">✓</div>Model<br>Evaluation</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-dot" id="pipe-registry-dot">✓</div>Model<br>Registry</div>
+      </div>
+      <div class="kv lg"><span>Last retrain</span><span id="r-time">—</span></div>
+      <div class="kv lg"><span>Outcome</span><span id="r-outcome">—</span></div>
+      <div class="kv lg"><span>Training samples</span><span id="r-samples">—</span></div>
+      <div class="kv lg"><span>New flagged clips used</span><span id="r-newclips">—</span></div>
+      <div class="kv lg"><span>Batches consumed</span><span id="r-batches">—</span></div>
+      <div class="muted-note">Triggered by the Airflow DAG on a schedule, or manually — not running continuously in this environment (resource-heavy; see CLAUDE.md).</div>
+    </div>
+
+    <div class="card big">
+      <h2 class="lg">Model Performance — Champion vs. Previous</h2>
+      <div class="legend">
+        <span><i style="background:var(--ink-muted);opacity:.5"></i>Previous (v<span id="perf-prev-v">—</span>)</span>
+        <span><i style="background:var(--aqua)"></i>Current champion (v<span id="perf-curr-v">—</span>)</span>
+      </div>
+      <div class="bars" id="perf-bars"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-1">
+    <div class="card">
+      <h2>Flagged Clips (feeding the next retrain)</h2>
+      <table>
+        <thead><tr><th>Time</th><th>Predicted</th><th>True species</th><th>Confidence</th><th>Status</th></tr></thead>
+        <tbody id="clips-body"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+renderSidebar("registry.html");
+
+function renderClips(clips) {
+  const body = document.getElementById("clips-body");
+  if (!clips || clips.length === 0) { body.innerHTML = '<tr><td colspan="5" class="empty">No flagged clips yet.</td></tr>'; return; }
+  body.innerHTML = clips.map(c => `
+    <tr>
+      <td>${fmtTime(c.time)}</td>
+      <td>${c.species ?? "—"}</td>
+      <td>${c.true_species ?? "—"}</td>
+      <td>${c.confidence != null ? (c.confidence * 100).toFixed(0) + "%" : "—"}</td>
+      <td><span class="pill ${c.action === "Pending" ? "warn" : "good"}">${c.action}</span></td>
+    </tr>`).join("");
+}
+
+function renderPerfBars(champion, previous) {
+  const el = document.getElementById("perf-bars");
+  document.getElementById("perf-curr-v").textContent = champion?.version ?? "—";
+  document.getElementById("perf-prev-v").textContent = previous?.version ?? "—";
+  if (!champion) { el.innerHTML = '<div class="empty">No model registered yet.</div>'; return; }
+  const rows = [["accuracy", "Accuracy"], ["precision", "Precision"], ["recall", "Recall"], ["f1", "F1-Score"]];
+  el.innerHTML = rows.map(([key, label]) => {
+    const cv = champion.metrics?.[`val_${key}`];
+    const pv = previous?.metrics?.[`val_${key}`];
+    const cw = cv != null ? (cv * 100) : 0;
+    const pw = pv != null ? (pv * 100) : 0;
+    return `
+      <div class="bar-row">
+        <span>${label}</span>
+        <div>
+          <div class="bar-track" style="margin-bottom:3px;"><div class="bar-fill prev" style="width:${pw}%"></div></div>
+          <div class="bar-track"><div class="bar-fill curr" style="width:${cw}%"></div></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;font-size:10.5px;color:var(--ink-muted);margin-top:-4px;">
+        <span>prev: ${pv != null ? (pv*100).toFixed(1)+"%" : "N/A (older model, metric not logged)"}</span>
+        <span>curr: ${cv != null ? (cv*100).toFixed(1)+"%" : "N/A"}</span>
+      </div>`;
+  }).join("");
+}
+
+async function refresh() {
+  try {
+    const d = await fetchOverview();
+    setHealthBadge(d);
+
+    document.getElementById("pipe-registry-dot").style.background = d.champion ? "rgba(12,163,12,0.18)" : "rgba(137,135,129,0.18)";
+    document.getElementById("pipe-registry-dot").style.color = d.champion ? "var(--good)" : "var(--ink-muted)";
+    document.getElementById("r-time").textContent = d.last_retrain ? fmtAgo(d.last_retrain.start_time) : "never";
+    document.getElementById("r-outcome").innerHTML = d.last_retrain
+      ? (d.last_retrain.promoted === "true" ? '<span class="pill good">Promoted to champion</span>' : '<span class="pill muted">Did not beat champion</span>')
+      : "—";
+    document.getElementById("r-samples").textContent = d.last_retrain?.params?.n_train_samples ?? "—";
+    document.getElementById("r-newclips").textContent = d.last_retrain?.params?.n_new_clips ?? "—";
+    document.getElementById("r-batches").textContent = d.last_retrain?.params?.n_batches ?? "—";
+
+    renderPerfBars(d.champion, d.previous_champion);
+    renderClips(d.recent_clips);
+  } catch (e) {
+    setHealthUnreachable();
+    console.error(e);
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

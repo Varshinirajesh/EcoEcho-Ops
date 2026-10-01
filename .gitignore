@@ -1,0 +1,43 @@
+# data & runtime state (regenerated, can get large)
+storage/
+cache/
+data/audio_stream/
+models/*
+!models/.gitkeep
+mlruns/
+ml/mlflow.db
+airflow/logs/
+airflow/plugins/
+airflow/config/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# env
+.env
+
+# os/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# claude code local session state
+.claude/
+
+/mlflow.db
+/mlruns.db
+/models/*
+!/models/.gitkeep
+.env.*
+!.env.example
+/data/
+
+.env
+.env.*
+!.env.example
+airflow/.env
+

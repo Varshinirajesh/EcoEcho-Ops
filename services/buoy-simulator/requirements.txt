@@ -1,0 +1,7 @@
+librosa==0.10.2.post1
+soundfile==0.12.1
+numpy==1.26.4
+requests==2.32.3
+prometheus-client==0.20.0
+minio==7.2.20
+matplotlib==3.9.2
